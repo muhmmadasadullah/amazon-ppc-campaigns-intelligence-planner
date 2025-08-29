@@ -1,17 +1,394 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Amazon PPC Campaigns Intelligence Planner</title>
-  <style>
-    body { font-family: Arial, sans-serif; text-align: center; padding: 100px; background: linear-gradient(135deg, #667eea, #764ba2); color: white; }
-    h1 { font-size: 2.5rem; margin-bottom: 20px; }
-    p { font-size: 1.2rem; }
-  </style>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Amazon PPC Campaigns Intelligence Planner (MVP)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+<style>
+  :root{--bg1:#0f172a;--bg2:#111827;--card:#1f2937;--muted:#9ca3af;--pri:#2563eb;--good:#10b981;--warn:#f59e0b;--bad:#ef4444;--accent:#7c3aed}
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{margin:0;font-family:Inter,system-ui,Segoe UI,Roboto,Arial,Helvetica,sans-serif;background:linear-gradient(135deg,#0f172a,#1e1b4b) fixed;color:#f3f4f6}
+  .wrap{max-width:1200px;margin:0 auto;padding:28px}
+  .row{display:flex;gap:16px;flex-wrap:wrap}
+  .card{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.08);border-radius:14px;padding:16px}
+  .header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
+  h1{font-size:22px;margin:0;font-weight:800;letter-spacing:.2px}
+  h2{font-size:16px;margin:0 0 8px 0}
+  input,select,textarea,button{font:inherit}
+  input,select,textarea{background:#0b1220;color:#e5e7eb;border:1px solid #374151;border-radius:10px;padding:10px}
+  textarea{min-height:120px;width:100%;resize:vertical}
+  .btn{background:var(--pri);border:none;color:#fff;border-radius:10px;padding:10px 14px;cursor:pointer}
+  .btn.secondary{background:#374151}
+  .btn.ghost{background:transparent;border:1px solid #374151}
+  .pill{display:inline-block;padding:4px 10px;border-radius:999px;background:#111827;border:1px solid #374151;color:#cbd5e1;font-size:12px}
+  .toolbar{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+  .grid2{display:grid;grid-template-columns:1.2fr .8fr;gap:16px}
+  .grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px}
+  .table{width:100%;border-collapse:separate;border-spacing:0 8px}
+  .table th{font-weight:600;color:#cbd5e1;text-align:left;padding:10px 8px}
+  .table td{background:#0b1220;border:1px solid #1f2937;border-left:none;border-right:none;padding:8px;border-radius:10px}
+  .kcard{min-height:300px}
+  .bucket{min-height:260px;background:#0b1220;border:1px dashed #374151;border-radius:12px;padding:10px}
+  .count{background:#111827;border:1px solid #374151;border-radius:999px;padding:2px 8px;color:#93c5fd;font-size:12px;margin-left:6px}
+  .badge{padding:2px 8px;border-radius:999px;font-size:12px}
+  .green{background:#064e3b;color:#a7f3d0;border:1px solid #065f46}
+  .yellow{background:#78350f;color:#fde68a;border:1px solid #92400e}
+  .red{background:#7f1d1d;color:#fecaca;border:1px solid #991b1b}
+  .right{justify-content:flex-end}
+  .mt8{margin-top:8px} .mt12{margin-top:12px} .mt16{margin-top:16px}
+  .small{font-size:12px;color:#9ca3af}
+  .sticky{position:sticky;top:0;background:linear-gradient(135deg,#0f172a,#1e1b4b);padding:10px 0;margin-bottom:8px;z-index:5}
+  .nowrap{white-space:nowrap}
+  .hidden{display:none}
+</style>
 </head>
 <body>
-  <h1>Amazon PPC Campaigns Intelligence Planner</h1>
-  <p>This site is under construction. Stay tuned for an intelligent PPC analysis tool!</p>
+  <div class="wrap">
+    <div class="header">
+      <h1>Amazon PPC Campaigns Intelligence Planner <span class="pill">MVP</span></h1>
+      <div class="toolbar">
+        <span class="small">Pure PPC · Local scoring · No listing edits</span>
+      </div>
+    </div>
+
+    <!-- Setup -->
+    <div class="card">
+      <h2>Setup</h2>
+      <div class="grid3">
+        <div>
+          <label class="small">ASIN</label>
+          <input id="asin" placeholder="e.g., B0DK9MS657">
+        </div>
+        <div>
+          <label class="small">Marketplace</label>
+          <select id="market">
+            <option value="US">US</option><option value="UK">UK</option>
+            <option value="DE">DE</option><option value="CA">CA</option>
+            <option value="FR">FR</option><option value="IT">IT</option>
+            <option value="ES">ES</option><option value="IN">IN</option>
+          </select>
+        </div>
+        <div>
+          <label class="small">Profile</label>
+          <select id="profile">
+            <option value="launch">Launch</option>
+            <option value="scale">Scale</option>
+            <option value="defend">Defend</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="grid2 mt12">
+        <div>
+          <label class="small">Paste listing text (Title + Bullets + A+/Desc). Used only to compute *relevancy*:</label>
+          <textarea id="listingText" placeholder="Paste your listing text here…"></textarea>
+          <div class="small mt8">We do NOT suggest copy changes. This is only for scoring PPC relevancy.</div>
+        </div>
+        <div>
+          <label class="small">Upload keyword file(s) (CSV from Helium10 / Data Dive):</label>
+          <input id="fileInput" type="file" accept=".csv,.tsv,.txt" multiple />
+          <div class="mt12">
+            <button class="btn" id="parseBtn">Parse & Score</button>
+            <button class="btn ghost" id="clearBtn">Clear</button>
+          </div>
+          <div class="small mt8" id="fileInfo"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Analyzer -->
+    <div class="card kcard mt16">
+      <div class="sticky toolbar">
+        <strong>Analyzer</strong>
+        <span class="pill" id="summaryChip">0 keywords</span>
+        <span class="pill">Filters</span>
+        <label class="small">Min Relevancy <input id="minRel" type="number" min="0" max="100" value="0" style="width:80px;margin-left:6px"></label>
+        <label class="small">Min SV <input id="minSV" type="number" min="0" value="0" style="width:100px;margin-left:6px"></label>
+        <label class="small">Max Title Density <input id="maxTD" type="number" min="0" value="999" style="width:90px;margin-left:6px"></label>
+        <label class="small">Contains <input id="contains" placeholder="term…" style="width:140px;margin-left:6px"></label>
+        <span class="pill">Bulk</span>
+        <select id="bulkType">
+          <option value="exact">Exact Match</option>
+          <option value="phrase">Phrase Match</option>
+          <option value="bmm">Broad (BMM)</option>
+        </select>
+        <label class="small" title="If checked, keep existing membership and add to the chosen bucket"><input id="addMode" type="checkbox" checked style="vertical-align:middle;margin-right:6px">Add (don’t remove)</label>
+        <button class="btn" id="applyBulk">Apply to Selected</button>
+      </div>
+
+      <table class="table" id="kwTable">
+        <thead>
+          <tr>
+            <th style="width:30px;"><input type="checkbox" id="selectAll"></th>
+            <th>Keyword</th>
+            <th class="nowrap">Search Vol.</th>
+            <th class="nowrap">Title Density</th>
+            <th class="nowrap">Ranking Comps</th>
+            <th class="nowrap">Sponsored Cnt</th>
+            <th>Relevancy</th>
+            <th>Opportunity</th>
+            <th>Priority</th>
+          </tr>
+        </thead>
+        <tbody id="kwBody"></tbody>
+      </table>
+    </div>
+
+    <!-- Buckets -->
+    <div class="grid3 mt16">
+      <div class="card">
+        <div class="toolbar">
+          <strong>Exact Match</strong><span class="count" id="cExact">0</span>
+          <button class="btn secondary right" onclick="copyBucket('exact')">Copy All</button>
+          <button class="btn ghost" onclick="clearBucket('exact')">Remove All</button>
+        </div>
+        <div class="bucket" id="bExact"></div>
+      </div>
+      <div class="card">
+        <div class="toolbar">
+          <strong>Phrase Match</strong><span class="count" id="cPhrase">0</span>
+          <button class="btn secondary right" onclick="copyBucket('phrase')">Copy All</button>
+          <button class="btn ghost" onclick="clearBucket('phrase')">Remove All</button>
+        </div>
+        <div class="bucket" id="bPhrase"></div>
+      </div>
+      <div class="card">
+        <div class="toolbar">
+          <strong>Broad (BMM)</strong><span class="count" id="cBmm">0</span>
+          <button class="btn secondary right" onclick="copyBucket('bmm')">Copy All</button>
+          <button class="btn ghost" onclick="clearBucket('bmm')">Remove All</button>
+        </div>
+        <div class="bucket" id="bBmm"></div>
+      </div>
+    </div>
+
+    <div class="mt16 small">Tip: BMM is rendered with “+” on every token, preserving existing +. All scoring is local in your browser.</div>
+  </div>
+
+<script>
+  // ---------- Data state ----------
+  let rows = [];            // parsed + scored keyword rows
+  let filtered = [];        // filtered view
+  let selected = new Set(); // selected keyword strings
+  const buckets = { exact:new Set(), phrase:new Set(), bmm:new Set() };
+
+  // ---------- Utilities ----------
+  const $ = sel => document.querySelector(sel);
+  const byId = id => document.getElementById(id);
+  function normalizeHeader(h){
+    if(!h) return '';
+    return h.toString().trim().toLowerCase()
+      .replace(/\s+/g,' ')
+      .replace(/[#/()-]/g,'');
+  }
+  function get(v,def=0){ const n=Number(v); return Number.isFinite(n)?n:def; }
+  function clamp(n,min,max){ return Math.max(min,Math.min(max,n)); }
+  function tokenize(txt){
+    return txt.toLowerCase()
+      .replace(/[^a-z0-9\s\+]/g,' ')
+      .replace(/\s+/g,' ')
+      .trim()
+      .split(' ')
+      .filter(Boolean);
+  }
+  function toBMM(kw){
+    return kw.trim().replace(/\s+/g,' ')
+      .split(' ')
+      .map(w => w.startsWith('+')? w : '+'+w)
+      .join(' ');
+  }
+  function debounce(fn,ms){let t;return(...a)=>{clearTimeout(t);t=setTimeout(()=>fn(...a),ms)}}
+
+  // ---------- Scoring ----------
+  function scoreKeywords(listingText){
+    const tokensListing = tokenize(listingText || '');
+    const setListing = new Set(tokensListing);
+    const listingStr = ' ' + tokensListing.join(' ') + ' ';
+    const svs = rows.map(r=>r.sv); const maxSV = Math.max(1,...svs);
+
+    for(const r of rows){
+      const kwTokens = tokenize(r.keyword);
+      const covered = kwTokens.filter(t=>setListing.has(t)).length;
+      const coverage = kwTokens.length? (covered/kwTokens.length) : 0;
+      // proximity bonus if keyword phrase appears as contiguous sequence:
+      const phrase = ' ' + kwTokens.join(' ') + ' ';
+      const proximity = listingStr.includes(phrase) ? 0.25 : 0;
+      const relevancy = clamp(Math.round(100*(coverage*0.75 + proximity)),0,100);
+
+      // opportunity uses inverse competition + SV
+      const td = r.titleDensity>0 ? (1/r.titleDensity) : 0;
+      const comp = r.compRankAvg>0 ? (1/r.compRankAvg) : 0;
+      const opp = 100*(0.55*(r.sv/maxSV) + 0.25*td + 0.20*comp);
+      const opportunity = clamp(Math.round(opp),0,100);
+      const priority = Math.round(0.6*relevancy + 0.4*opportunity);
+
+      r.relevancy=relevancy; r.opportunity=opportunity; r.priority=priority;
+    }
+  }
+
+  // ---------- Renderers ----------
+  function renderTable(){
+    const body = byId('kwBody'); body.innerHTML='';
+    const frag = document.createDocumentFragment();
+    filtered.forEach(r=>{
+      const tr = document.createElement('tr');
+      const checked = selected.has(r.keyword) ? 'checked' : '';
+      tr.innerHTML = `
+        <td><input type="checkbox" data-k="${r.keyword}" ${checked}></td>
+        <td>${r.keyword}</td>
+        <td class="nowrap">${r.sv.toLocaleString()}</td>
+        <td class="nowrap">${r.titleDensity??'—'}</td>
+        <td class="nowrap">${r.rankComps??'—'}</td>
+        <td class="nowrap">${r.sponCnt??'—'}</td>
+        <td><span class="badge ${r.relevancy>=70?'green':r.relevancy>=40?'yellow':'red'}">${r.relevancy}</span></td>
+        <td>${r.opportunity}</td>
+        <td><strong>${r.priority}</strong></td>`;
+      frag.appendChild(tr);
+    });
+    body.appendChild(frag);
+    byId('summaryChip').textContent = `${filtered.length} keywords`;
+  }
+
+  function renderBuckets(){
+    const map = [
+      ['exact','bExact','cExact'],
+      ['phrase','bPhrase','cPhrase'],
+      ['bmm','bBmm','cBmm']
+    ];
+    for(const [key,boxId,countId] of map){
+      const box = byId(boxId); const arr = Array.from(buckets[key]).sort();
+      box.innerHTML = arr.map(k=>`<div class="small">${key==='bmm'? toBMM(k):k}</div>`).join('');
+      byId(countId).textContent = arr.length;
+    }
+  }
+
+  // ---------- Filters ----------
+  function applyFilters(){
+    const minRel = get(byId('minRel').value,0);
+    const minSV = get(byId('minSV').value,0);
+    const maxTD = get(byId('maxTD').value,999);
+    const contains = byId('contains').value.trim().toLowerCase();
+
+    filtered = rows.filter(r=>{
+      if(r.relevancy < minRel) return false;
+      if(r.sv < minSV) return false;
+      if(r.titleDensity!==null && r.titleDensity!==undefined && r.titleDensity > maxTD) return false;
+      if(contains && !r.keyword.toLowerCase().includes(contains)) return false;
+      return true;
+    });
+    renderTable();
+  }
+
+  // ---------- Bucketing ----------
+  function addToBucket(kw, type){
+    buckets[type].add(kw);
+  }
+  function moveToBucket(kw, type){
+    // remove from all then add
+    buckets.exact.delete(kw); buckets.phrase.delete(kw); buckets.bmm.delete(kw);
+    buckets[type].add(kw);
+  }
+  function clearBucket(type){ buckets[type].clear(); renderBuckets(); }
+  function copyBucket(type){
+    const arr = Array.from(buckets[type]);
+    const text = type==='bmm' ? arr.map(toBMM).join('\n') : arr.join('\n');
+    navigator.clipboard.writeText(text);
+    alert(`Copied ${arr.length} ${type.toUpperCase()} keyword(s).`);
+  }
+
+  // ---------- Events ----------
+  byId('clearBtn').onclick = ()=>{
+    rows=[]; filtered=[]; selected.clear();
+    byId('kwBody').innerHTML=''; byId('fileInfo').textContent='';
+    Object.values(buckets).forEach(s=>s.clear());
+    renderBuckets(); applyFilters();
+  };
+
+  byId('parseBtn').onclick = async ()=>{
+    const files = byId('fileInput').files;
+    if(!files.length){ alert('Upload at least one CSV file.'); return; }
+    rows = [];
+    for(const f of files){
+      const text = await f.text();
+      const parsed = Papa.parse(text, {header:true, skipEmptyLines:true});
+      const hdr = parsed.meta.fields.map(normalizeHeader);
+      // try to find columns
+      function col(...cands){
+        for(const c of cands){
+          const idx = hdr.indexOf(normalizeHeader(c));
+          if(idx>-1) return parsed.meta.fields[idx];
+        } return null;
+      }
+      const kCol = col('keyword','kw','phrase');
+      const svCol = col('search volume','search_volume','sv','volume');
+      const tdCol = col('title density','title_density','titledensity');
+      const rcCol = col('ranking competitors','ranking comps','ranking_competitors');
+      const scCol = col('sponsored rank count','sponsored count','sponsoredrankcount');
+      const crCol = col('competitor rank avg','comp rank avg','competitor_avg_rank');
+
+      parsed.data.forEach(row=>{
+        const kw = (row[kCol]||'').toString().trim();
+        if(!kw) return;
+        rows.push({
+          keyword: kw,
+          sv: get(row[svCol]),
+          titleDensity: row[tdCol]!==undefined ? get(row[tdCol]) : null,
+          rankComps: row[rcCol]!==undefined ? get(row[rcCol]) : null,
+          sponCnt: row[scCol]!==undefined ? get(row[scCol]) : null,
+          compRankAvg: row[crCol]!==undefined ? get(row[crCol]) : null,
+          relevancy: 0, opportunity: 0, priority: 0
+        });
+      });
+    }
+    scoreKeywords(byId('listingText').value);
+    filtered = rows.slice().sort((a,b)=>b.priority-a.priority);
+    applyFilters();
+    byId('fileInfo').textContent = `Loaded ${rows.length} keywords from ${files.length} file(s).`;
+  };
+
+  const reScore = debounce(()=>{
+    if(!rows.length) return;
+    scoreKeywords(byId('listingText').value);
+    applyFilters();
+  }, 250);
+  byId('listingText').addEventListener('input', reScore);
+  byId('minRel').addEventListener('input', debounce(applyFilters,150));
+  byId('minSV').addEventListener('input', debounce(applyFilters,150));
+  byId('maxTD').addEventListener('input', debounce(applyFilters,150));
+  byId('contains').addEventListener('input', debounce(applyFilters,150));
+
+  byId('kwBody').addEventListener('change', (e)=>{
+    const cb = e.target; if(cb && cb.type==='checkbox' && cb.dataset.k){
+      if(cb.checked) selected.add(cb.dataset.k); else selected.delete(cb.dataset.k);
+    }
+  });
+  byId('selectAll').addEventListener('change',(e)=>{
+    selected.clear();
+    if(e.target.checked) filtered.forEach(r=>selected.add(r.keyword));
+    renderTable();
+    // re-check all
+    filtered.forEach(r=>{
+      const box = document.querySelector(`input[type="checkbox"][data-k="${CSS.escape(r.keyword)}"]`);
+      if(box) box.checked = e.target.checked;
+    });
+  });
+
+  byId('applyBulk').onclick = ()=>{
+    const addMode = byId('addMode').checked;
+    const type = byId('bulkType').value;
+    let n = 0;
+    selected.forEach(kw=>{
+      addMode ? addToBucket(kw,type) : moveToBucket(kw,type);
+      n++;
+    });
+    renderBuckets();
+    alert(`${addMode?'Added':'Moved'} ${n} keyword(s) to ${type.toUpperCase()}`);
+  };
+</script>
 </body>
 </html>
